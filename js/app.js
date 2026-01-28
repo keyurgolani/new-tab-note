@@ -850,13 +850,23 @@ class App {
   updateSidebarState() {
     const sidebar = document.getElementById('sidebar');
     const toggleBtn = document.getElementById('sidebar-toggle');
+    const headerLeft = document.querySelector('.header-left');
+    const sidebarToggleContainer = document.getElementById('sidebar-toggle-container');
     
     if (this.sidebarOpen) {
       sidebar.classList.remove('collapsed');
       toggleBtn.classList.add('active');
+      // Move toggle button into sidebar
+      if (sidebarToggleContainer && toggleBtn.parentElement !== sidebarToggleContainer) {
+        sidebarToggleContainer.appendChild(toggleBtn);
+      }
     } else {
       sidebar.classList.add('collapsed');
       toggleBtn.classList.remove('active');
+      // Move toggle button back to header
+      if (headerLeft && toggleBtn.parentElement !== headerLeft) {
+        headerLeft.appendChild(toggleBtn);
+      }
     }
   }
 
