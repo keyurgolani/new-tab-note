@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Update version in manifest (if manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          # Update manifest.json version
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            manifest.version = '$VERSION';
+            fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+          "
+          # Update package.json version
+          npm version $VERSION --no-git-tag-version --allow-same-version
+      
+      - name: Build extension
+        run: npm run build
+      
+      - name: Package extension
+        run: npm run package
+      
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: New Tab Note v${{ steps.version.outputs.version }}
+          body: |
+            ## New Tab Note v${{ steps.version.outputs.version }}
+            
+            ### Installation
+            
+            #### From Chrome Web Store (Recommended)
+            *Coming soon*
+            
+            #### Manual Installation
+            1. Download `new-tab-note-v${{ steps.version.outputs.version }}.zip` from the assets below
+            2. Extract the zip file to a folder
+            3. Open Chrome and go to `chrome://extensions/`
+            4. Enable "Developer mode" in the top right
+            5. Click "Load unpacked" and select the extracted folder
+            
+            ### Checksums
+            ```
+            SHA256: $(sha256sum releases/new-tab-note-v${{ steps.version.outputs.version }}.zip | cut -d' ' -f1)
+            ```
+          files: |
+            releases/new-tab-note-v${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-package
+          path: releases/*.zip
+          retention-days: 30

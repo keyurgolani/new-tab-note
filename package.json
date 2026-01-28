@@ -1,0 +1,27 @@
+{
+  "name": "new-tab-note",
+  "version": "1.0.0",
+  "description": "A rich block-based note editor Chrome extension that replaces your new tab page with AI-powered features",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:dev": "node scripts/build.js --dev",
+    "clean": "rm -rf dist",
+    "package": "node scripts/package.js",
+    "release": "npm run clean && npm run build && npm run package"
+  },
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "terser": "^5.31.0",
+    "archiver": "^7.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Keyur Golani <keyurrgolani@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keyurgolani/new-tab-note.git"
+  }
+}

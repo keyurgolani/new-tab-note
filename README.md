@@ -118,11 +118,78 @@ Access settings via the gear icon in the header:
 
 ## Installation
 
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked" and select the extension folder
-5. Open a new tab to start using New Tab Note
+### From Release (Recommended)
+
+1. Download the latest `new-tab-note-vX.X.X.zip` from [Releases](https://github.com/keyurgolani/new-tab-note/releases)
+2. Extract the zip file to a folder
+3. Open Chrome and navigate to `chrome://extensions/`
+4. Enable "Developer mode" in the top right corner
+5. Click "Load unpacked" and select the extracted folder
+6. Open a new tab to start using New Tab Note
+
+### From Source (Development)
+
+1. Clone this repository
+2. Install dependencies: `npm install`
+3. Build the extension: `npm run build`
+4. Open Chrome and navigate to `chrome://extensions/`
+5. Enable "Developer mode" in the top right corner
+6. Click "Load unpacked" and select the `dist` folder
+7. Open a new tab to start using New Tab Note
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Scripts
+
+```bash
+# Install dependencies
+npm install
+
+# Build for production (minified)
+npm run build
+
+# Build for development (no minification)
+npm run build:dev
+
+# Create release package (.zip)
+npm run package
+
+# Full release build (clean + build + package)
+npm run release
+
+# Clean build artifacts
+npm run clean
+```
+
+### Project Structure
+
+```
+new-tab-note/
+├── css/              # Stylesheets
+├── icons/            # Extension icons
+├── js/               # Source JavaScript
+├── scripts/          # Build scripts
+├── dist/             # Build output (generated)
+├── releases/         # Release packages (generated)
+├── manifest.json     # Chrome extension manifest
+├── newtab.html       # Main new tab page
+├── popup.html        # Extension popup
+└── offscreen.html    # Offscreen document for API calls
+```
+
+### Release Process
+
+Releases are automated via GitHub Actions. To create a new release:
+
+1. Update version in `manifest.json` and `package.json`
+2. Commit and push changes
+3. Create and push a tag: `git tag v1.0.1 && git push origin v1.0.1`
+4. GitHub Actions will build, package, and create a release with the `.zip` file
 
 ## Ollama Setup
 
