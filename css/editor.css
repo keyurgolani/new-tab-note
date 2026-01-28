@@ -2968,6 +2968,38 @@ html, body {
   font-size: 14px;
 }
 
+/* Insights Loading State */
+.note-insights.insights-loading {
+  padding: 12px 16px;
+}
+
+.note-insights.insights-loading .note-insights-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.insights-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.insights-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: insights-spin 0.8s linear infinite;
+}
+
+@keyframes insights-spin {
+  to { transform: rotate(360deg); }
+}
+
 .note-insights-header {
   display: flex;
   align-items: center;

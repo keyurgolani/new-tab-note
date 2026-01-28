@@ -670,6 +670,12 @@ class App {
       sidebarItem.classList.add('generating');
     }
 
+    // Show loading state in insights section if this is the current note
+    const isCurrentNote = this.editor && this.editor.noteId === noteId;
+    if (isCurrentNote) {
+      this.showInsightsLoading();
+    }
+
     try {
       // Get note and its content
       const note = await Storage.getNote(noteId);
@@ -704,7 +710,6 @@ class App {
       await Storage.updateNote(note);
 
       // Update UI if this note is currently open in editor
-      const isCurrentNote = this.editor && this.editor.noteId === noteId;
       if (isCurrentNote) {
         this.editor.noteData = note;
         this.editor.renderInsights();
@@ -720,12 +725,62 @@ class App {
     } catch (error) {
       console.error('Failed to extract insights:', error);
       Utils.showToast('Failed to extract insights: ' + error.message, 'error');
+      // Remove loading state from insights on error
+      if (isCurrentNote) {
+        this.hideInsightsLoading();
+      }
     } finally {
       // Remove loading state
       const updatedSidebarItem = document.querySelector(`.sidebar-note-item[data-note-id="${noteId}"]`);
       if (updatedSidebarItem) {
         updatedSidebarItem.classList.remove('generating');
       }
+    }
+  }
+
+  /**
+   * Show loading indicator in insights section
+   */
+  showInsightsLoading() {
+    // Remove existing insights section
+    const existingInsights = document.getElementById('note-insights');
+    if (existingInsights) {
+      existingInsights.remove();
+    }
+
+    // Create loading placeholder
+    const loadingEl = document.createElement('div');
+    loadingEl.id = 'note-insights';
+    loadingEl.className = 'note-insights insights-loading';
+    loadingEl.innerHTML = `
+      <div class="note-insights-header">
+        <div class="note-insights-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path>
+          </svg>
+          <span>AI Insights</span>
+        </div>
+        <div class="insights-loading-indicator">
+          <div class="insights-spinner"></div>
+          <span>Extracting...</span>
+        </div>
+      </div>
+    `;
+
+    // Insert after timestamp
+    const timestamp = document.getElementById('page-timestamp');
+    if (timestamp) {
+      timestamp.after(loadingEl);
+    }
+  }
+
+  /**
+   * Hide loading indicator in insights section
+   */
+  hideInsightsLoading() {
+    const loadingEl = document.getElementById('note-insights');
+    if (loadingEl && loadingEl.classList.contains('insights-loading')) {
+      loadingEl.remove();
     }
   }
 
