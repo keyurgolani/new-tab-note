@@ -377,6 +377,13 @@ class App {
       contextMenu.classList.add('hidden');
     });
 
+    document.getElementById('ctx-extract-insights').addEventListener('click', async () => {
+      if (this.contextMenuNoteId) {
+        await this.extractInsightsForNote(this.contextMenuNoteId);
+      }
+      contextMenu.classList.add('hidden');
+    });
+
     document.getElementById('ctx-archive-note').addEventListener('click', async () => {
       if (this.contextMenuNoteId) {
         await this.archiveNote(this.contextMenuNoteId);
@@ -519,6 +526,7 @@ class App {
     const openBtn = document.getElementById('ctx-open-note');
     const generateTitleBtn = document.getElementById('ctx-generate-title');
     const exportBtn = document.getElementById('ctx-export-note');
+    const extractInsightsBtn = document.getElementById('ctx-extract-insights');
     const archiveBtn = document.getElementById('ctx-archive-note');
     const unarchiveBtn = document.getElementById('ctx-unarchive-note');
     const restoreBtn = document.getElementById('ctx-restore-note');
@@ -535,6 +543,7 @@ class App {
     openBtn.classList.toggle('hidden', isTrash);
     generateTitleBtn.classList.toggle('hidden', isTrash);
     exportBtn.classList.toggle('hidden', isTrash);
+    extractInsightsBtn.classList.toggle('hidden', isTrash);
     archiveBtn.classList.toggle('hidden', !isNotes);
     unarchiveBtn.classList.toggle('hidden', !isArchive);
     restoreBtn.classList.toggle('hidden', !isTrash);
@@ -629,6 +638,81 @@ class App {
         pageTitle.classList.remove('title-generating');
       }
       // Sidebar item may have been re-rendered, so query again
+      const updatedSidebarItem = document.querySelector(`.sidebar-note-item[data-note-id="${noteId}"]`);
+      if (updatedSidebarItem) {
+        updatedSidebarItem.classList.remove('generating');
+      }
+    }
+  }
+
+  /**
+   * Extract insights for a note by ID
+   */
+  async extractInsightsForNote(noteId) {
+    // Check if LLM is configured
+    if (!LLM.isConfigured()) {
+      Utils.showToast('AI not configured. Please set up in Settings.', 'error');
+      return;
+    }
+
+    // Show loading state on sidebar item
+    const sidebarItem = document.querySelector(`.sidebar-note-item[data-note-id="${noteId}"]`);
+    if (sidebarItem) {
+      sidebarItem.classList.add('generating');
+    }
+
+    try {
+      // Get note and its content
+      const note = await Storage.getNote(noteId);
+      if (!note) {
+        Utils.showToast('Note not found', 'error');
+        return;
+      }
+
+      const blocks = await Storage.getElementsByNote(noteId);
+      const content = blocks
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(b => this.extractBlockText(b))
+        .filter(t => t.trim())
+        .join('\n\n');
+
+      if (content.trim().length < 20) {
+        Utils.showToast('Not enough content to extract insights', 'error');
+        return;
+      }
+
+      const insights = await LLM.extractInsights(content, note.name);
+
+      if (!insights) {
+        Utils.showToast('No insights found in this note', 'info');
+        return;
+      }
+
+      // Update note with insights
+      note.insights = insights;
+      note.lastInsightsExtractedAt = Date.now();
+      note.lastInsightsContentHash = this.generateContentHash(content);
+      await Storage.updateNote(note);
+
+      // Update UI if this note is currently open in editor
+      const isCurrentNote = this.editor && this.editor.noteId === noteId;
+      if (isCurrentNote) {
+        this.editor.noteData = note;
+        this.editor.renderInsights();
+      }
+
+      // Count extracted items
+      const itemCount = (insights.todos?.length || 0) + 
+                       (insights.reminders?.length || 0) + 
+                       (insights.deadlines?.length || 0) + 
+                       (insights.highlights?.length || 0);
+
+      Utils.showToast(`Extracted ${itemCount} insight${itemCount !== 1 ? 's' : ''}`, 'success');
+    } catch (error) {
+      console.error('Failed to extract insights:', error);
+      Utils.showToast('Failed to extract insights: ' + error.message, 'error');
+    } finally {
+      // Remove loading state
       const updatedSidebarItem = document.querySelector(`.sidebar-note-item[data-note-id="${noteId}"]`);
       if (updatedSidebarItem) {
         updatedSidebarItem.classList.remove('generating');
