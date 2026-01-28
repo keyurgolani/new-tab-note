@@ -1464,6 +1464,11 @@ class App {
     // Suggestion buttons (welcome area)
     document.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'extract-insights') {
+          this.extractInsightsFromChat();
+          return;
+        }
         const prompt = btn.dataset.prompt;
         if (prompt) {
           chatInput.value = prompt;
@@ -1475,6 +1480,11 @@ class App {
     // Sticky suggestion buttons
     document.querySelectorAll('.ai-sticky-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'extract-insights') {
+          this.extractInsightsFromChat();
+          return;
+        }
         const prompt = btn.dataset.prompt;
         if (prompt) {
           chatInput.value = prompt;
@@ -1711,6 +1721,105 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     } catch (error) {
       console.error('AI chat error:', error);
       this.addChatMessage('Error: ' + error.message, 'error');
+    } finally {
+      loading?.classList.add('hidden');
+      if (sendBtn) sendBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Extract insights from the current note via AI Chat button
+   */
+  async extractInsightsFromChat() {
+    if (!this.editor || !this.editor.noteId) {
+      Utils.showToast('No note selected', 'error');
+      return;
+    }
+
+    if (!LLM.isConfigured()) {
+      Utils.showToast('AI not configured. Please set up in Settings.', 'error');
+      return;
+    }
+
+    // Hide welcome message if visible and show sticky suggestions
+    const welcome = document.querySelector('.ai-chat-welcome');
+    const stickySuggestions = document.getElementById('ai-sticky-suggestions');
+    if (welcome) {
+      welcome.style.display = 'none';
+    }
+    if (stickySuggestions) {
+      stickySuggestions.classList.remove('hidden');
+    }
+
+    // Add user message to chat
+    this.addChatMessage('Extract insights from this note', 'user');
+
+    // Show loading
+    const loading = document.getElementById('ai-chat-loading');
+    loading?.classList.remove('hidden');
+
+    // Disable send button
+    const sendBtn = document.getElementById('ai-chat-send');
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+      const noteContent = this.getNoteContent();
+      
+      if (!noteContent || noteContent.trim().length < 20) {
+        this.addChatMessage('Not enough content in this note to extract insights. Please add more content first.', 'assistant');
+        return;
+      }
+
+      const insights = await LLM.extractInsights(noteContent, this.editor.noteData?.name);
+
+      if (!insights) {
+        this.addChatMessage('Could not extract any insights from this note. The content may not contain actionable items, reminders, or deadlines.', 'assistant');
+        return;
+      }
+
+      // Update note with insights
+      if (this.editor.noteData) {
+        this.editor.noteData.insights = insights;
+        this.editor.noteData.lastInsightsExtractedAt = Date.now();
+        await Storage.updateNote(this.editor.noteData);
+        this.editor.renderInsights();
+      }
+
+      // Build response message
+      let response = '✅ **Insights extracted and saved to note!**\n\n';
+      
+      if (insights.deadlines && insights.deadlines.length > 0) {
+        response += '**📅 Deadlines:**\n';
+        insights.deadlines.forEach(d => {
+          const dateStr = d.date ? ` (${d.date})` : '';
+          response += `- ${d.text}${dateStr}\n`;
+        });
+        response += '\n';
+      }
+
+      if (insights.todos && insights.todos.length > 0) {
+        response += '**✓ Action Items:**\n';
+        insights.todos.forEach(t => response += `- ${t}\n`);
+        response += '\n';
+      }
+
+      if (insights.reminders && insights.reminders.length > 0) {
+        response += '**💡 Reminders:**\n';
+        insights.reminders.forEach(r => response += `- ${r}\n`);
+        response += '\n';
+      }
+
+      if (insights.highlights && insights.highlights.length > 0) {
+        response += '**⭐ Key Points:**\n';
+        insights.highlights.forEach(h => response += `- ${h}\n`);
+      }
+
+      this.addChatMessage(response.trim(), 'assistant');
+      Utils.showToast('Insights extracted', 'success');
+
+    } catch (error) {
+      console.error('Extract insights error:', error);
+      this.addChatMessage('Error extracting insights: ' + error.message, 'error');
     } finally {
       loading?.classList.add('hidden');
       if (sendBtn) sendBtn.disabled = false;
