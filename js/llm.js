@@ -535,7 +535,7 @@ Rules:
 
   /**
    * Extract actionable insights from note content
-   * Returns structured data with todos, reminders, deadlines, and important info
+   * Returns structured data with todos, reminders, deadlines, highlights, and tags
    */
   async extractInsights(content, noteTitle = '') {
     if (!content || content.trim().length < 20) {
@@ -554,12 +554,15 @@ Analyze the note and extract:
 2. **reminders**: Things to remember or keep in mind
 3. **deadlines**: Important dates, deadlines, or time-sensitive items (include the date if mentioned)
 4. **highlights**: Key information, important facts, or notable points
+5. **tags**: Relevant topic tags or categories for this note (e.g., "work", "personal", "meeting", "project-x", "finance")
 
 Rules:
 - Only extract items that are clearly stated or strongly implied
 - For deadlines, always try to include the specific date in YYYY-MM-DD format if mentioned
 - Keep each item concise (max 100 characters)
 - Maximum 5 items per category
+- For tags: generate 2-5 short, lowercase tags (no spaces, use hyphens for multi-word tags)
+- Tags should reflect the main topics, projects, or categories of the note
 - If a category has no items, return an empty array
 - Return ONLY valid JSON, no markdown or explanation
 
@@ -568,7 +571,8 @@ Return JSON in this exact format:
   "todos": ["item1", "item2"],
   "reminders": ["item1", "item2"],
   "deadlines": [{"text": "description", "date": "YYYY-MM-DD"}],
-  "highlights": ["item1", "item2"]
+  "highlights": ["item1", "item2"],
+  "tags": ["tag1", "tag2", "tag3"]
 }`,
       },
       {
@@ -597,6 +601,7 @@ Return JSON in this exact format:
           date: d.date || null
         })) : [],
         highlights: Array.isArray(insights.highlights) ? insights.highlights.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
+        tags: Array.isArray(insights.tags) ? insights.tags.slice(0, 5).map(t => String(t).toLowerCase().replace(/\s+/g, '-').substring(0, 30)) : [],
         extractedAt: Date.now()
       };
     } catch (error) {

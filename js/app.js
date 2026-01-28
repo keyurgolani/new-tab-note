@@ -1871,6 +1871,10 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
 
       // Build response message
       let response = '✅ **Insights extracted and saved to note!**\n\n';
+
+      if (insights.tags && insights.tags.length > 0) {
+        response += '**🏷️ Tags:** ' + insights.tags.join(', ') + '\n\n';
+      }
       
       if (insights.deadlines && insights.deadlines.length > 0) {
         response += '**📅 Deadlines:**\n';

@@ -162,7 +162,8 @@ class BlockEditor {
     const hasContent = (insights.todos && insights.todos.length > 0) ||
                        (insights.reminders && insights.reminders.length > 0) ||
                        (insights.deadlines && insights.deadlines.length > 0) ||
-                       (insights.highlights && insights.highlights.length > 0);
+                       (insights.highlights && insights.highlights.length > 0) ||
+                       (insights.tags && insights.tags.length > 0);
 
     if (!hasContent) {
       return;
@@ -201,6 +202,21 @@ class BlockEditor {
     header.appendChild(meta);
     header.appendChild(refreshBtn);
     insightsEl.appendChild(header);
+
+    // Tags section (displayed at top as pills)
+    if (insights.tags && insights.tags.length > 0) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'note-insights-tags';
+      
+      insights.tags.forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'note-insights-tag';
+        tagEl.textContent = tag;
+        tagsContainer.appendChild(tagEl);
+      });
+      
+      insightsEl.appendChild(tagsContainer);
+    }
 
     // Content container
     const content = document.createElement('div');
