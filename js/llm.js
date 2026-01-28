@@ -660,6 +660,123 @@ Return JSON in this exact format:
       generatedAt: Date.now()
     };
   }
+
+  /**
+   * RAG Step 1: Analyze user query and determine which notes to retrieve
+   * Returns note IDs, tags to filter by, and the follow-up prompt
+   */
+  async ragAnalyzeQuery(userQuery, notesMetadata) {
+    if (!userQuery || !notesMetadata || notesMetadata.length === 0) {
+      return null;
+    }
+
+    const notesListStr = notesMetadata.map(n => 
+      `- ID: "${n.id}", Title: "${n.title || 'Untitled'}", Tags: [${(n.tags || []).join(', ')}]`
+    ).join('\n');
+
+    const allTags = [...new Set(notesMetadata.flatMap(n => n.tags || []))];
+    const tagsListStr = allTags.length > 0 ? allTags.join(', ') : '(no tags)';
+
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an intelligent assistant that helps users find information across their notes.
+
+The user has a collection of notes. Your task is to:
+1. Analyze the user's query
+2. Determine which notes are most likely to contain relevant information based on their titles and tags
+3. Return a structured response indicating which notes to retrieve
+
+Available notes:
+${notesListStr}
+
+All available tags: ${tagsListStr}
+
+Rules:
+- Select only notes that are likely relevant to the query (max 5 notes)
+- If the query is general or unclear, select notes with the most relevant titles/tags
+- Also specify any tags that might help filter relevant content
+- Create a follow-up prompt that will be used with the full note content to answer the user's query
+- Return ONLY valid JSON, no markdown or explanation
+
+Return JSON in this exact format:
+{
+  "noteIds": ["id1", "id2"],
+  "relevantTags": ["tag1", "tag2"],
+  "followUpPrompt": "Based on the following notes, [specific instruction to answer the user's query]",
+  "reasoning": "Brief explanation of why these notes were selected"
+}`
+      },
+      {
+        role: 'user',
+        content: userQuery
+      }
+    ];
+
+    try {
+      const response = await this.chat(messages);
+      
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      const result = JSON.parse(jsonStr);
+      
+      return {
+        noteIds: Array.isArray(result.noteIds) ? result.noteIds : [],
+        relevantTags: Array.isArray(result.relevantTags) ? result.relevantTags : [],
+        followUpPrompt: result.followUpPrompt || 'Answer the user query based on the following notes.',
+        reasoning: result.reasoning || ''
+      };
+    } catch (error) {
+      console.error('RAG analysis failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * RAG Step 2: Answer the user query using the retrieved note content
+   */
+  async ragAnswerQuery(userQuery, followUpPrompt, notesContent) {
+    if (!userQuery || !notesContent || notesContent.length === 0) {
+      return null;
+    }
+
+    const notesStr = notesContent.map(n => 
+      `=== Note: ${n.title || 'Untitled'} ===\n${n.content}\n`
+    ).join('\n');
+
+    const messages = [
+      {
+        role: 'system',
+        content: `You are a helpful assistant answering questions based on the user's notes.
+
+${followUpPrompt}
+
+Notes content:
+${notesStr}
+
+Rules:
+- Answer based ONLY on the information in the provided notes
+- If the information is not in the notes, say so clearly
+- Be concise but thorough
+- If referencing specific notes, mention their titles
+- Format your response clearly with paragraphs or bullet points as appropriate`
+      },
+      {
+        role: 'user',
+        content: userQuery
+      }
+    ];
+
+    try {
+      return await this.chat(messages);
+    } catch (error) {
+      console.error('RAG answer failed:', error);
+      throw error;
+    }
+  }
 }
 
 
