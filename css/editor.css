@@ -2371,6 +2371,52 @@ html, body {
   color: var(--accent-color);
 }
 
+/* AI Chat Tabs */
+.ai-chat-tabs {
+  display: flex;
+  padding: 8px 12px;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.ai-chat-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ai-chat-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.ai-chat-tab.active {
+  background: var(--bg-primary);
+  color: var(--accent-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* AI Chat Panels */
+.ai-chat-panel {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.ai-chat-panel.active {
+  display: flex;
+}
+
 /* Sticky Suggestions Bar */
 .ai-sticky-suggestions {
   display: flex;
@@ -2674,71 +2720,7 @@ html, body {
   display: none;
 }
 
-/* Floating AI Menu Container */
-.ai-floating-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 100;
-}
-
-.ai-floating-container .ai-floating-btn {
-  position: relative;
-  bottom: auto;
-  right: auto;
-}
-
-/* Floating AI Menu */
-.ai-floating-menu {
-  position: absolute;
-  bottom: 64px;
-  right: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  padding: 8px;
-  min-width: 180px;
-  opacity: 1;
-  transform: translateY(0);
-  transition: all 0.2s ease;
-}
-
-.ai-floating-menu.hidden {
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-}
-
-.ai-floating-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background var(--transition);
-}
-
-.ai-floating-menu-item:hover {
-  background: var(--bg-hover);
-}
-
-.ai-floating-menu-item svg {
-  color: var(--accent-color);
-  flex-shrink: 0;
-}
-
-/* Global Chat Sidebar specific styles */
-.global-chat-sidebar .ai-sidebar-title svg {
-  color: var(--accent-color);
-}
-
+/* Global Chat specific styles */
 .global-chat-suggestion {
   padding: 8px 14px;
   border: 1px solid var(--border-color);

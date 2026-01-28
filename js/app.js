@@ -1523,13 +1523,16 @@ class App {
   setupAI() {
     const aiSidebar = document.getElementById('ai-sidebar');
     const aiFloatingBtn = document.getElementById('ai-floating-btn');
-    const aiFloatingMenu = document.getElementById('ai-floating-menu');
-    const aiMenuNoteChat = document.getElementById('ai-menu-note-chat');
-    const aiMenuGlobalChat = document.getElementById('ai-menu-global-chat');
     const aiCloseBtn = document.getElementById('ai-sidebar-close');
     const chatInput = document.getElementById('ai-chat-input');
     const chatSendBtn = document.getElementById('ai-chat-send');
     const settingsBtn = document.getElementById('ai-sidebar-open-settings');
+    
+    // Tab elements
+    const tabNote = document.getElementById('ai-tab-note');
+    const tabAll = document.getElementById('ai-tab-all');
+    const panelNote = document.getElementById('ai-panel-note');
+    const panelAll = document.getElementById('ai-panel-all');
     
     if (!aiSidebar) return;
 
@@ -1537,30 +1540,11 @@ class App {
     this.aiChatHistory = [];
     this.aiSidebarOpen = false;
     this.aiSidebarWidth = 360;
+    this.aiActiveTab = 'note';
 
-    // Toggle floating menu from floating button
-    aiFloatingBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      aiFloatingMenu?.classList.toggle('hidden');
-    });
-
-    // Close floating menu when clicking outside
-    document.addEventListener('click', (e) => {
-      if (aiFloatingMenu && !aiFloatingMenu.contains(e.target) && e.target !== aiFloatingBtn) {
-        aiFloatingMenu.classList.add('hidden');
-      }
-    });
-
-    // Open note chat from menu
-    aiMenuNoteChat?.addEventListener('click', () => {
-      aiFloatingMenu?.classList.add('hidden');
+    // Toggle AI sidebar from floating button
+    aiFloatingBtn?.addEventListener('click', () => {
       this.openAISidebar();
-    });
-
-    // Open global chat from menu
-    aiMenuGlobalChat?.addEventListener('click', () => {
-      aiFloatingMenu?.classList.add('hidden');
-      this.openGlobalChatSidebar();
     });
 
     // Close AI sidebar
@@ -1568,7 +1552,16 @@ class App {
       this.closeAISidebar();
     });
 
-    // Send message
+    // Tab switching
+    tabNote?.addEventListener('click', () => {
+      this.switchAITab('note');
+    });
+    
+    tabAll?.addEventListener('click', () => {
+      this.switchAITab('all');
+    });
+
+    // Send message (note chat)
     chatSendBtn?.addEventListener('click', () => {
       this.sendAIChatMessage();
     });
@@ -1639,6 +1632,32 @@ class App {
   }
 
   /**
+   * Switch between AI chat tabs
+   */
+  switchAITab(tab) {
+    const tabNote = document.getElementById('ai-tab-note');
+    const tabAll = document.getElementById('ai-tab-all');
+    const panelNote = document.getElementById('ai-panel-note');
+    const panelAll = document.getElementById('ai-panel-all');
+    
+    this.aiActiveTab = tab;
+    
+    if (tab === 'note') {
+      tabNote?.classList.add('active');
+      tabAll?.classList.remove('active');
+      panelNote?.classList.add('active');
+      panelAll?.classList.remove('active');
+      document.getElementById('ai-chat-input')?.focus();
+    } else {
+      tabNote?.classList.remove('active');
+      tabAll?.classList.add('active');
+      panelNote?.classList.remove('active');
+      panelAll?.classList.add('active');
+      document.getElementById('global-chat-input')?.focus();
+    }
+  }
+
+  /**
    * Setup AI sidebar resize functionality
    */
   setupAISidebarResize() {
@@ -1705,19 +1724,16 @@ class App {
    */
   openAISidebar() {
     const sidebar = document.getElementById('ai-sidebar');
-    const floatingContainer = document.querySelector('.ai-floating-container');
-    
-    // Close global chat if open
-    this.closeGlobalChatSidebar();
+    const floatingBtn = document.getElementById('ai-floating-btn');
     
     if (sidebar) {
       sidebar.classList.remove('hidden');
       sidebar.style.width = this.aiSidebarWidth + 'px';
     }
     
-    // Hide floating container when sidebar is open
-    if (floatingContainer) {
-      floatingContainer.style.display = 'none';
+    // Hide floating button when sidebar is open
+    if (floatingBtn) {
+      floatingBtn.classList.add('hidden');
     }
     
     this.aiSidebarOpen = true;
@@ -1734,15 +1750,15 @@ class App {
    */
   closeAISidebar() {
     const sidebar = document.getElementById('ai-sidebar');
-    const floatingContainer = document.querySelector('.ai-floating-container');
+    const floatingBtn = document.getElementById('ai-floating-btn');
     
     if (sidebar) {
       sidebar.classList.add('hidden');
     }
     
-    // Show floating container when sidebar is closed (unless global chat is open)
-    if (floatingContainer && !this.globalChatOpen) {
-      floatingContainer.style.display = '';
+    // Show floating button when sidebar is closed
+    if (floatingBtn) {
+      floatingBtn.classList.remove('hidden');
     }
     
     this.aiSidebarOpen = false;
@@ -1966,22 +1982,13 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
    * Setup Global Chat (RAG across all notes)
    */
   setupGlobalChat() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    const closeBtn = document.getElementById('global-chat-close');
     const chatInput = document.getElementById('global-chat-input');
     const sendBtn = document.getElementById('global-chat-send');
-    const settingsBtn = document.getElementById('global-chat-open-settings');
     
-    if (!sidebar) return;
+    if (!chatInput) return;
 
     // Initialize global chat state
     this.globalChatHistory = [];
-    this.globalChatOpen = false;
-
-    // Close global chat sidebar
-    closeBtn?.addEventListener('click', () => {
-      this.closeGlobalChatSidebar();
-    });
 
     // Send message
     sendBtn?.addEventListener('click', () => {
@@ -2016,127 +2023,6 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
         }
       });
     });
-
-    // Open settings
-    settingsBtn?.addEventListener('click', () => {
-      document.getElementById('settings-modal').classList.remove('hidden');
-      this.updateSettingsUI();
-    });
-
-    // Setup resize handle
-    this.setupGlobalChatResize();
-  }
-
-  /**
-   * Setup Global Chat sidebar resize
-   */
-  setupGlobalChatResize() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    const resizeHandle = document.getElementById('global-chat-resize-handle');
-    
-    if (!sidebar || !resizeHandle) return;
-
-    let isResizing = false;
-    let startX = 0;
-    let startWidth = 0;
-
-    resizeHandle.addEventListener('mousedown', (e) => {
-      isResizing = true;
-      startX = e.clientX;
-      startWidth = sidebar.offsetWidth;
-      
-      sidebar.classList.add('resizing');
-      resizeHandle.classList.add('dragging');
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      
-      e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!isResizing) return;
-      
-      const delta = startX - e.clientX;
-      const newWidth = Math.min(600, Math.max(280, startWidth + delta));
-      
-      sidebar.style.width = newWidth + 'px';
-    });
-
-    document.addEventListener('mouseup', async () => {
-      if (!isResizing) return;
-      
-      isResizing = false;
-      sidebar.classList.remove('resizing');
-      resizeHandle.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    });
-  }
-
-  /**
-   * Open Global Chat sidebar
-   */
-  openGlobalChatSidebar() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    const floatingContainer = document.querySelector('.ai-floating-container');
-    
-    // Close note chat if open
-    this.closeAISidebar();
-    
-    if (sidebar) {
-      sidebar.classList.remove('hidden');
-      sidebar.style.width = (this.aiSidebarWidth || 360) + 'px';
-    }
-    
-    if (floatingContainer) {
-      floatingContainer.style.display = 'none';
-    }
-    
-    this.globalChatOpen = true;
-    this.updateGlobalChatState();
-    
-    setTimeout(() => {
-      document.getElementById('global-chat-input')?.focus();
-    }, 100);
-  }
-
-  /**
-   * Close Global Chat sidebar
-   */
-  closeGlobalChatSidebar() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    const floatingContainer = document.querySelector('.ai-floating-container');
-    
-    if (sidebar) {
-      sidebar.classList.add('hidden');
-    }
-    
-    if (floatingContainer) {
-      floatingContainer.style.display = '';
-    }
-    
-    this.globalChatOpen = false;
-  }
-
-  /**
-   * Update Global Chat state based on LLM configuration
-   */
-  updateGlobalChatState() {
-    const notConfigured = document.getElementById('global-chat-not-configured');
-    const chatMessages = document.getElementById('global-chat-messages');
-    const chatInputArea = document.querySelector('#global-chat-sidebar .ai-chat-input-area');
-    
-    const isConfigured = LLM.isConfigured();
-    
-    if (notConfigured) {
-      notConfigured.classList.toggle('hidden', isConfigured);
-    }
-    if (chatMessages) {
-      chatMessages.style.display = isConfigured ? 'flex' : 'none';
-    }
-    if (chatInputArea) {
-      chatInputArea.style.display = isConfigured ? 'flex' : 'none';
-    }
   }
 
   /**
@@ -2153,7 +2039,7 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     input.style.height = 'auto';
     
     // Hide welcome message
-    const welcome = document.querySelector('#global-chat-sidebar .ai-chat-welcome');
+    const welcome = document.querySelector('.global-chat-welcome');
     if (welcome) {
       welcome.style.display = 'none';
     }
@@ -2366,8 +2252,9 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
       await this.openNoteInNewTab(noteId);
     }
     
-    // Close global chat sidebar
-    this.closeGlobalChatSidebar();
+    // Switch to note chat tab and close sidebar
+    this.switchAITab('note');
+    this.closeAISidebar();
   }
 
   /**
