@@ -2898,6 +2898,39 @@ html, body {
   list-style-type: decimal;
 }
 
+.ai-message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.ai-message-content table th,
+.ai-message-content table td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+}
+
+.ai-message-content table th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-message-content table td {
+  background: var(--bg-primary);
+}
+
+.ai-message-content table tr:nth-child(even) td {
+  background: var(--bg-secondary);
+}
+
+.ai-message-content hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 16px 0;
+}
+
 .ai-message-content a {
   color: var(--accent-color);
   text-decoration: underline;
