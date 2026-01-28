@@ -2210,7 +2210,10 @@ html, body {
 
 .header-left {
   flex-shrink: 0;
-  min-width: 36px;
+}
+
+.header-left:empty {
+  display: none;
 }
 
 .header-center {
