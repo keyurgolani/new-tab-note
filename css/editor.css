@@ -2846,3 +2846,175 @@ html, body {
 [data-theme="dark"] .ai-message-content blockquote {
   background: #1a1a1a;
 }
+
+/* Note Insights Section */
+.note-insights {
+  margin: 16px 0 24px 0;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.note-insights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.note-insights-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.note-insights-title svg {
+  color: var(--accent-color);
+}
+
+.note-insights-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.note-insights-refresh {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.note-insights-refresh:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.note-insights-refresh.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.note-insights-section {
+  margin-bottom: 12px;
+}
+
+.note-insights-section:last-child {
+  margin-bottom: 0;
+}
+
+.note-insights-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.note-insights-section-title .icon {
+  font-size: 14px;
+}
+
+.note-insights-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.note-insights-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.note-insights-list li::before {
+  content: '•';
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.note-insights-list.deadlines li::before {
+  content: '📅';
+}
+
+.note-insights-list.todos li::before {
+  content: '☐';
+  color: var(--accent-color);
+}
+
+.note-insights-list.reminders li::before {
+  content: '💡';
+}
+
+.note-insights-list.highlights li::before {
+  content: '⭐';
+}
+
+.deadline-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.deadline-date.today {
+  background: var(--danger-color);
+  color: white;
+}
+
+.deadline-date.soon {
+  background: #f59e0b;
+  color: white;
+}
+
+.note-insights-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Collapsed insights */
+.note-insights.collapsed .note-insights-content {
+  display: none;
+}
+
+.note-insights-toggle {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.note-insights-toggle:hover {
+  color: var(--text-primary);
+}
+
+.note-insights.collapsed .note-insights-toggle {
+  transform: rotate(-90deg);
+}

@@ -442,6 +442,28 @@
               <p class="setting-hint llm-auto-title-hint hidden">
                 Automatically generates titles for "Untitled" notes when content changes.
               </p>
+              <div class="setting-row llm-insights-row hidden">
+                <label>Extract insights</label>
+                <div class="toggle-switch-wrapper">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="insights-enabled">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-row llm-insights-interval-row hidden">
+                <label>Extraction interval</label>
+                <select id="insights-interval">
+                  <option value="60">Every hour</option>
+                  <option value="360">Every 6 hours</option>
+                  <option value="720">Every 12 hours</option>
+                  <option value="1440">Every day</option>
+                  <option value="10080">Every week</option>
+                </select>
+              </div>
+              <p class="setting-hint llm-insights-hint hidden">
+                Periodically extracts action items, reminders, deadlines, and key points from your notes.
+              </p>
             </div>
             <div class="settings-section">
               <h3>Trash</h3>

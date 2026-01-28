@@ -20,6 +20,9 @@ class App {
     // Auto-title
     this.autoTitleIntervalId = null;
     this.autoTitleRunning = false;
+    // Insights extraction
+    this.insightsIntervalId = null;
+    this.insightsRunning = false;
     // AI Chat sidebar
     this.aiSidebarOpen = false;
     this.aiSidebarWidth = 360;
@@ -55,6 +58,7 @@ class App {
       this.setupTabs();
       this.setupEmptyState();
       this.setupAutoTitle();
+      this.setupInsightsExtraction();
       this.applyTheme();
       this.applyFont();
       this.applyWidth();
@@ -1351,6 +1355,23 @@ class App {
     // Update auto-title interval visibility based on enabled state
     this.updateAutoTitleIntervalVisibility(autoTitleEnabled);
 
+    // Insights extraction settings
+    const insightsEnabled = await Storage.getSetting('insightsEnabled', false);
+    const insightsInterval = await Storage.getSetting('insightsInterval', 360);
+    
+    const insightsEnabledCheckbox = document.getElementById('insights-enabled');
+    const insightsIntervalSelect = document.getElementById('insights-interval');
+    
+    if (insightsEnabledCheckbox) {
+      insightsEnabledCheckbox.checked = insightsEnabled;
+    }
+    if (insightsIntervalSelect) {
+      insightsIntervalSelect.value = insightsInterval.toString();
+    }
+    
+    // Update insights interval visibility based on enabled state
+    this.updateInsightsIntervalVisibility(insightsEnabled);
+
     // Trash retention
     const trashRetention = await Storage.getSetting('trashRetention', 30);
     const trashRetentionSelect = document.getElementById('trash-retention-select');
@@ -2061,6 +2082,31 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
         }
       });
     }
+
+    // Insights extraction settings
+    const insightsEnabled = document.getElementById('insights-enabled');
+    const insightsInterval = document.getElementById('insights-interval');
+
+    if (insightsEnabled) {
+      insightsEnabled.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        const interval = parseInt(insightsInterval?.value || '360');
+        await this.updateInsightsSettings(enabled, interval);
+        this.updateInsightsIntervalVisibility(enabled);
+      });
+    }
+
+    if (insightsInterval) {
+      insightsInterval.addEventListener('change', async (e) => {
+        const interval = parseInt(e.target.value);
+        const enabled = insightsEnabled?.checked || false;
+        if (enabled) {
+          await this.updateInsightsSettings(enabled, interval);
+        } else {
+          await Storage.setSetting('insightsInterval', interval);
+        }
+      });
+    }
   }
 
   /**
@@ -2068,6 +2114,16 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
    */
   updateAutoTitleIntervalVisibility(enabled) {
     const intervalRow = document.querySelector('.llm-auto-title-interval-row');
+    if (intervalRow) {
+      intervalRow.classList.toggle('hidden', !enabled);
+    }
+  }
+
+  /**
+   * Update insights interval row visibility
+   */
+  updateInsightsIntervalVisibility(enabled) {
+    const intervalRow = document.querySelector('.llm-insights-interval-row');
     if (intervalRow) {
       intervalRow.classList.toggle('hidden', !enabled);
     }
@@ -2084,6 +2140,9 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     const autoTitleRow = document.querySelector('.llm-auto-title-row');
     const autoTitleIntervalRow = document.querySelector('.llm-auto-title-interval-row');
     const autoTitleHint = document.querySelector('.llm-auto-title-hint');
+    const insightsRow = document.querySelector('.llm-insights-row');
+    const insightsIntervalRow = document.querySelector('.llm-insights-interval-row');
+    const insightsHint = document.querySelector('.llm-insights-hint');
 
     const isConfigured = provider !== 'none';
     const isOllama = provider === 'ollama';
@@ -2119,6 +2178,20 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     const autoTitleEnabled = document.getElementById('auto-title-enabled');
     if (autoTitleIntervalRow) {
       autoTitleIntervalRow.classList.toggle('hidden', !isConfigured || !autoTitleEnabled?.checked);
+    }
+
+    // Show/hide insights settings based on provider
+    if (insightsRow) {
+      insightsRow.classList.toggle('hidden', !isConfigured);
+    }
+    if (insightsHint) {
+      insightsHint.classList.toggle('hidden', !isConfigured);
+    }
+
+    // Insights interval visibility depends on both provider and enabled state
+    const insightsEnabled = document.getElementById('insights-enabled');
+    if (insightsIntervalRow) {
+      insightsIntervalRow.classList.toggle('hidden', !isConfigured || !insightsEnabled?.checked);
     }
   }
 
@@ -2758,6 +2831,183 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     } else {
       this.stopAutoTitleInterval();
     }
+  }
+
+  // ============ Insights Extraction ============
+
+  /**
+   * Setup insights extraction feature
+   */
+  async setupInsightsExtraction() {
+    const enabled = await Storage.getSetting('insightsEnabled', false);
+    const interval = await Storage.getSetting('insightsInterval', 360);
+
+    if (enabled && LLM.isConfigured()) {
+      // Check if we missed any extractions while browser was closed
+      await this.checkMissedInsightsExtraction(interval);
+      
+      // Start the regular interval
+      this.startInsightsInterval(interval);
+    }
+  }
+
+  /**
+   * Check for missed insights extractions (browser was closed)
+   */
+  async checkMissedInsightsExtraction(intervalMinutes) {
+    const lastRunTimestamp = await Storage.getSetting('lastInsightsRun', 0);
+    const intervalMs = intervalMinutes * 60 * 1000;
+    
+    // If last run was more than the interval ago, run immediately
+    if (lastRunTimestamp && (Date.now() - lastRunTimestamp) > intervalMs) {
+      console.log('Missed insights extraction window, running catch-up');
+      await this.runInsightsExtraction(true);
+    }
+  }
+
+  /**
+   * Start the insights extraction interval
+   */
+  startInsightsInterval(intervalMinutes) {
+    // Clear existing interval if any
+    this.stopInsightsInterval();
+
+    // Convert minutes to milliseconds
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    // Run immediately on start, then at intervals
+    this.runInsightsExtraction();
+
+    this.insightsIntervalId = setInterval(() => {
+      this.runInsightsExtraction();
+    }, intervalMs);
+
+    console.log(`Insights extraction started with ${intervalMinutes} minute interval`);
+  }
+
+  /**
+   * Stop the insights extraction interval
+   */
+  stopInsightsInterval() {
+    if (this.insightsIntervalId) {
+      clearInterval(this.insightsIntervalId);
+      this.insightsIntervalId = null;
+      console.log('Insights extraction stopped');
+    }
+  }
+
+  /**
+   * Run insights extraction for all notes
+   */
+  async runInsightsExtraction(isCatchUp = false) {
+    // Prevent concurrent runs
+    if (this.insightsRunning) {
+      console.log('Insights extraction already running, skipping');
+      return;
+    }
+
+    // Check if LLM is configured
+    if (!LLM.isConfigured()) {
+      console.log('LLM not configured, skipping insights extraction');
+      return;
+    }
+
+    this.insightsRunning = true;
+
+    try {
+      // Record this run timestamp
+      await Storage.setSetting('lastInsightsRun', Date.now());
+      
+      const notes = await Storage.getAllNotes();
+      let extractedCount = 0;
+
+      for (const note of notes) {
+        // Get note content
+        const blocks = await Storage.getElementsByNote(note.id);
+        const content = blocks
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .map(b => this.extractBlockText(b))
+          .filter(t => t.trim())
+          .join('\n\n');
+
+        // Skip if not enough content
+        if (content.trim().length < 50) {
+          continue;
+        }
+
+        // Generate content hash to check if content changed
+        const contentHash = this.generateContentHash(content);
+        
+        // Skip if content hasn't changed since last extraction
+        if (note.lastInsightsContentHash && note.lastInsightsContentHash === contentHash) {
+          continue;
+        }
+
+        try {
+          console.log(`Extracting insights for note: ${note.id} (${note.name || 'Untitled'})`);
+          
+          const insights = await LLM.extractInsights(content, note.name);
+
+          if (insights) {
+            // Update note with insights
+            note.insights = insights;
+            note.lastInsightsExtractedAt = Date.now();
+            note.lastInsightsContentHash = contentHash;
+            await Storage.updateNote(note);
+
+            // Update UI if this note is currently open
+            const isCurrentNote = this.editor && this.editor.noteId === note.id;
+            if (isCurrentNote) {
+              this.editor.noteData = note;
+              this.editor.renderInsights();
+            }
+
+            extractedCount++;
+            console.log(`Insights extracted for note: ${note.name || 'Untitled'}`);
+          }
+        } catch (error) {
+          console.error(`Failed to extract insights for note ${note.id}:`, error);
+          // Continue with other notes even if one fails
+        }
+
+        // Small delay between API calls to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+
+      if (extractedCount > 0) {
+        console.log(`Insights extraction complete: ${extractedCount} note(s) updated`);
+      }
+    } catch (error) {
+      console.error('Insights extraction run failed:', error);
+    } finally {
+      this.insightsRunning = false;
+    }
+  }
+
+  /**
+   * Update insights settings and restart interval if needed
+   */
+  async updateInsightsSettings(enabled, interval) {
+    await Storage.setSetting('insightsEnabled', enabled);
+    await Storage.setSetting('insightsInterval', interval);
+
+    if (enabled && LLM.isConfigured()) {
+      this.startInsightsInterval(interval);
+    } else {
+      this.stopInsightsInterval();
+    }
+  }
+
+  /**
+   * Get all notes with their insights for daily summary
+   */
+  async getNotesWithInsights() {
+    const notes = await Storage.getAllNotes();
+    return notes.filter(note => note.insights && (
+      (note.insights.todos && note.insights.todos.length > 0) ||
+      (note.insights.reminders && note.insights.reminders.length > 0) ||
+      (note.insights.deadlines && note.insights.deadlines.length > 0)
+    ));
   }
 }
 

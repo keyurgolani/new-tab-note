@@ -13,7 +13,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      width: 280px;
+      width: 320px;
       padding: 16px;
       background: #fff;
       color: #1a1a1a;
@@ -57,11 +57,123 @@
       letter-spacing: 0.5px;
     }
 
+    /* Daily Summary Styles */
+    .daily-summary {
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      border: 1px solid #e0e7ff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .daily-summary.hidden {
+      display: none;
+    }
+
+    .daily-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .daily-summary-header svg {
+      color: #6366f1;
+    }
+
+    .daily-summary-header span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4f46e5;
+    }
+
+    .summary-section {
+      margin-bottom: 10px;
+    }
+
+    .summary-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .summary-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .summary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .summary-list li {
+      font-size: 12px;
+      color: #374151;
+      padding: 4px 0;
+      padding-left: 16px;
+      position: relative;
+      line-height: 1.4;
+    }
+
+    .summary-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #9ca3af;
+    }
+
+    .summary-list.deadlines li::before {
+      background: #ef4444;
+    }
+
+    .summary-list.deadlines li.today::before {
+      background: #dc2626;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+    }
+
+    .summary-list.todos li::before {
+      background: #3b82f6;
+    }
+
+    .summary-list.reminders li::before {
+      background: #f59e0b;
+    }
+
+    .deadline-date {
+      font-size: 10px;
+      color: #6b7280;
+      margin-left: 6px;
+    }
+
+    .deadline-date.today {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .deadline-date.soon {
+      color: #f59e0b;
+    }
+
+    .summary-empty {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      padding: 8px;
+    }
+
     .page-list {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-height: 200px;
+      max-height: 150px;
       overflow-y: auto;
     }
 
@@ -83,6 +195,10 @@
     .page-item .name {
       font-size: 13px;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
     }
 
     .page-item .date {
@@ -154,6 +270,19 @@
     <img src="icons/icon48.png" alt="New Tab Note">
     <h1>New Tab Note</h1>
     <span>v1.0.0</span>
+  </div>
+
+  <!-- Daily Summary Section -->
+  <div id="daily-summary" class="daily-summary hidden">
+    <div class="daily-summary-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path>
+      </svg>
+      <span>Today's Summary</span>
+    </div>
+    <div id="summary-content">
+      <!-- Populated by JavaScript -->
+    </div>
   </div>
 
   <div class="section">

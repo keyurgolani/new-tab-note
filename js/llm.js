@@ -532,7 +532,132 @@ Rules:
       return null;
     }
   }
+
+  /**
+   * Extract actionable insights from note content
+   * Returns structured data with todos, reminders, deadlines, and important info
+   */
+  async extractInsights(content, noteTitle = '') {
+    if (!content || content.trim().length < 20) {
+      return null;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an assistant that extracts actionable insights from notes. Today's date is ${today}.
+
+Analyze the note and extract:
+1. **todos**: Action items or tasks to complete (things to do)
+2. **reminders**: Things to remember or keep in mind
+3. **deadlines**: Important dates, deadlines, or time-sensitive items (include the date if mentioned)
+4. **highlights**: Key information, important facts, or notable points
+
+Rules:
+- Only extract items that are clearly stated or strongly implied
+- For deadlines, always try to include the specific date in YYYY-MM-DD format if mentioned
+- Keep each item concise (max 100 characters)
+- Maximum 5 items per category
+- If a category has no items, return an empty array
+- Return ONLY valid JSON, no markdown or explanation
+
+Return JSON in this exact format:
+{
+  "todos": ["item1", "item2"],
+  "reminders": ["item1", "item2"],
+  "deadlines": [{"text": "description", "date": "YYYY-MM-DD"}],
+  "highlights": ["item1", "item2"]
+}`,
+      },
+      {
+        role: 'user',
+        content: `Note title: ${noteTitle || 'Untitled'}\n\nNote content:\n${content.substring(0, 4000)}`,
+      },
+    ];
+
+    try {
+      const response = await this.chat(messages);
+      
+      // Parse JSON from response (handle potential markdown code blocks)
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      const insights = JSON.parse(jsonStr);
+      
+      // Validate and sanitize the response
+      return {
+        todos: Array.isArray(insights.todos) ? insights.todos.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
+        reminders: Array.isArray(insights.reminders) ? insights.reminders.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
+        deadlines: Array.isArray(insights.deadlines) ? insights.deadlines.slice(0, 5).map(d => ({
+          text: String(d.text || d).substring(0, 100),
+          date: d.date || null
+        })) : [],
+        highlights: Array.isArray(insights.highlights) ? insights.highlights.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
+        extractedAt: Date.now()
+      };
+    } catch (error) {
+      console.error('Failed to extract insights:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate a daily summary from multiple notes' insights
+   */
+  async generateDailySummary(notesWithInsights) {
+    if (!notesWithInsights || notesWithInsights.length === 0) {
+      return null;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+    // Compile all insights
+    const allTodos = [];
+    const allReminders = [];
+    const allDeadlines = [];
+    
+    for (const note of notesWithInsights) {
+      if (!note.insights) continue;
+      
+      const prefix = note.name ? `[${note.name}] ` : '';
+      
+      if (note.insights.todos) {
+        allTodos.push(...note.insights.todos.map(t => prefix + t));
+      }
+      if (note.insights.reminders) {
+        allReminders.push(...note.insights.reminders.map(r => prefix + r));
+      }
+      if (note.insights.deadlines) {
+        allDeadlines.push(...note.insights.deadlines.map(d => ({
+          ...d,
+          text: prefix + d.text,
+          noteId: note.id
+        })));
+      }
+    }
+
+    // Filter deadlines for today and upcoming
+    const todayDeadlines = allDeadlines.filter(d => d.date === today);
+    const upcomingDeadlines = allDeadlines.filter(d => d.date && d.date > today && d.date <= nextWeek);
+
+    return {
+      date: today,
+      todayDeadlines,
+      upcomingDeadlines,
+      todos: allTodos.slice(0, 10),
+      reminders: allReminders.slice(0, 10),
+      generatedAt: Date.now()
+    };
+  }
 }
 
-// Create global instance
-window.LLM = new LLMService();
+
+// Global LLM instance
+const LLM = new LLMService();
+window.LLM = LLM;
