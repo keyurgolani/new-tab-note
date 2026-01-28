@@ -268,9 +268,6 @@ class BlockEditor {
     const list = document.createElement('ul');
     list.className = `note-insights-list ${type}`;
 
-    const today = new Date().toISOString().split('T')[0];
-    const threeDaysFromNow = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
-
     items.forEach(item => {
       const li = document.createElement('li');
       
@@ -280,16 +277,18 @@ class BlockEditor {
         li.appendChild(textSpan);
         
         if (item.date) {
+          const dateInfo = this.getRelativeDateInfo(item.date);
           const dateSpan = document.createElement('span');
           dateSpan.className = 'deadline-date';
-          if (item.date === today) {
-            dateSpan.classList.add('today');
-            dateSpan.textContent = 'Today';
-          } else if (item.date <= threeDaysFromNow) {
-            dateSpan.classList.add('soon');
-            dateSpan.textContent = this.formatDate(item.date);
+          if (dateInfo.urgency) {
+            dateSpan.classList.add(dateInfo.urgency);
+          }
+          
+          // Show relative date with actual date in parentheses
+          if (dateInfo.relative !== dateInfo.formatted) {
+            dateSpan.innerHTML = `${dateInfo.relative} <span class="deadline-actual-date">(${dateInfo.formatted})</span>`;
           } else {
-            dateSpan.textContent = this.formatDate(item.date);
+            dateSpan.textContent = dateInfo.formatted;
           }
           li.appendChild(dateSpan);
         }
@@ -302,6 +301,50 @@ class BlockEditor {
 
     section.appendChild(list);
     return section;
+  }
+
+  /**
+   * Get relative date info for deadline display
+   */
+  getRelativeDateInfo(dateStr) {
+    if (!dateStr) return { relative: '', formatted: '', urgency: null };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const targetDate = new Date(dateStr + 'T00:00:00');
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    const formatted = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    let relative = '';
+    let urgency = null;
+    
+    if (diffDays < -1) {
+      relative = `${Math.abs(diffDays)} days ago`;
+      urgency = 'overdue';
+    } else if (diffDays === -1) {
+      relative = 'Yesterday';
+      urgency = 'overdue';
+    } else if (diffDays === 0) {
+      relative = 'Today';
+      urgency = 'today';
+    } else if (diffDays === 1) {
+      relative = 'Tomorrow';
+      urgency = 'soon';
+    } else if (diffDays <= 3) {
+      relative = `In ${diffDays} days`;
+      urgency = 'soon';
+    } else if (diffDays <= 7) {
+      relative = `In ${diffDays} days`;
+      urgency = 'upcoming';
+    } else {
+      relative = formatted;
+      urgency = null;
+    }
+    
+    return { relative, formatted, urgency };
   }
 
   /**

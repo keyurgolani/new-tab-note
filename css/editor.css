@@ -3017,6 +3017,21 @@ html, body {
   color: white;
 }
 
+.deadline-date.overdue {
+  background: #dc2626;
+  color: white;
+}
+
+.deadline-date.upcoming {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.deadline-actual-date {
+  opacity: 0.75;
+  font-size: 10px;
+}
+
 .note-insights-empty {
   color: var(--text-muted);
   font-style: italic;
