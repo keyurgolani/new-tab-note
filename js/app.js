@@ -357,66 +357,75 @@ class App {
 
     // Context menu actions
     document.getElementById('ctx-open-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.openNoteInNewTab(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.openNoteInNewTab(noteId);
+      }
     });
 
     document.getElementById('ctx-generate-title').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.generateTitleForNote(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.generateTitleForNote(noteId);
+      }
     });
 
     document.getElementById('ctx-export-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.exportNoteById(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.exportNoteById(noteId);
+      }
     });
 
     document.getElementById('ctx-extract-insights').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.extractInsightsForNote(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.extractInsightsForNote(noteId);
+      }
     });
 
     document.getElementById('ctx-archive-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.archiveNote(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.archiveNote(noteId);
+      }
     });
 
     document.getElementById('ctx-unarchive-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.unarchiveNote(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.unarchiveNote(noteId);
+      }
     });
 
     document.getElementById('ctx-delete-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.trashNoteById(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.trashNoteById(noteId);
+      }
     });
 
     document.getElementById('ctx-restore-note').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.restoreNoteById(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.restoreNoteById(noteId);
+      }
     });
 
     document.getElementById('ctx-delete-permanent').addEventListener('click', async () => {
-      if (this.contextMenuNoteId) {
-        await this.permanentlyDeleteNoteById(this.contextMenuNoteId);
-      }
+      const noteId = this.contextMenuNoteId;
       contextMenu.classList.add('hidden');
+      if (noteId) {
+        await this.permanentlyDeleteNoteById(noteId);
+      }
     });
   }
 
