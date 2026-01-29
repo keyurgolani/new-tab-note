@@ -196,83 +196,72 @@ function renderDailySummary(summary) {
   const today = new Date().toISOString().split('T')[0];
   const threeDaysFromNow = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
 
-  if (summary.todayDeadlines.length > 0) {
-    const section = document.createElement('div');
-    section.className = 'summary-section';
-    section.innerHTML = '<div class="summary-section-title">⚠️ Due Today</div>';
+  // Deadlines category (combine today and upcoming)
+  const allDeadlines = [...summary.todayDeadlines, ...summary.upcomingDeadlines];
+  if (allDeadlines.length > 0) {
+    const category = document.createElement('div');
+    category.className = 'summary-category';
+    category.innerHTML = '<div class="summary-category-title"><span class="dot deadlines"></span>Deadlines</div>';
     
     const list = document.createElement('ul');
     list.className = 'summary-list deadlines';
     
-    for (const deadline of summary.todayDeadlines) {
+    for (const deadline of allDeadlines.slice(0, 4)) {
       const li = document.createElement('li');
-      li.className = 'today';
-      li.innerHTML = escapeHtml(deadline.text) + '<span class="deadline-date today">Today</span>';
-      list.appendChild(li);
-    }
-    
-    section.appendChild(list);
-    content.appendChild(section);
-  }
-
-  if (summary.upcomingDeadlines.length > 0) {
-    const section = document.createElement('div');
-    section.className = 'summary-section';
-    section.innerHTML = '<div class="summary-section-title">📅 Upcoming</div>';
-    
-    const list = document.createElement('ul');
-    list.className = 'summary-list deadlines';
-    
-    for (const deadline of summary.upcomingDeadlines) {
-      const li = document.createElement('li');
+      const isToday = deadline.date === today;
+      if (isToday) li.className = 'today';
+      
       let dateHtml = '';
       if (deadline.date) {
         const isSoon = deadline.date <= threeDaysFromNow;
-        const soonClass = isSoon ? ' soon' : '';
-        dateHtml = '<span class="deadline-date' + soonClass + '">' + formatDeadlineDate(deadline.date) + '</span>';
+        const dateClass = isToday ? 'today' : (isSoon ? 'soon' : '');
+        const dateText = isToday ? 'Today' : formatDeadlineDate(deadline.date);
+        dateHtml = '<span class="deadline-date ' + dateClass + '">' + dateText + '</span>';
       }
       li.innerHTML = escapeHtml(deadline.text) + dateHtml;
       list.appendChild(li);
     }
     
-    section.appendChild(list);
-    content.appendChild(section);
+    category.appendChild(list);
+    content.appendChild(category);
   }
 
+  // Action Items category
   if (summary.todos.length > 0) {
-    const section = document.createElement('div');
-    section.className = 'summary-section';
-    section.innerHTML = '<div class="summary-section-title">✓ Action Items</div>';
+    const category = document.createElement('div');
+    category.className = 'summary-category';
+    category.innerHTML = '<div class="summary-category-title"><span class="dot todos"></span>Action Items</div>';
     
     const list = document.createElement('ul');
     list.className = 'summary-list todos';
     
-    for (const todo of summary.todos) {
+    for (const todo of summary.todos.slice(0, 4)) {
       const li = document.createElement('li');
       li.textContent = todo;
       list.appendChild(li);
     }
     
-    section.appendChild(list);
-    content.appendChild(section);
+    category.appendChild(list);
+    content.appendChild(category);
   }
 
+  // Reminders category
   if (summary.reminders.length > 0) {
-    const section = document.createElement('div');
-    section.className = 'summary-section';
-    section.innerHTML = '<div class="summary-section-title">💡 Reminders</div>';
+    const category = document.createElement('div');
+    category.className = 'summary-category';
+    category.innerHTML = '<div class="summary-category-title"><span class="dot reminders"></span>Reminders</div>';
     
     const list = document.createElement('ul');
     list.className = 'summary-list reminders';
     
-    for (const reminder of summary.reminders) {
+    for (const reminder of summary.reminders.slice(0, 4)) {
       const li = document.createElement('li');
       li.textContent = reminder;
       list.appendChild(li);
     }
     
-    section.appendChild(list);
-    content.appendChild(section);
+    category.appendChild(list);
+    content.appendChild(category);
   }
 }
 
@@ -283,11 +272,25 @@ async function init() {
   try {
     await storage.init();
 
+    let hasSummary = false;
     const insightsEnabled = await storage.getSetting('insightsEnabled', false);
     if (insightsEnabled) {
       const notesWithInsights = await storage.getNotesWithInsights();
       const summary = generateDailySummary(notesWithInsights);
-      renderDailySummary(summary);
+      if (summary && (
+        summary.todayDeadlines.length > 0 ||
+        summary.upcomingDeadlines.length > 0 ||
+        summary.todos.length > 0 ||
+        summary.reminders.length > 0
+      )) {
+        hasSummary = true;
+        renderDailySummary(summary);
+      }
+    }
+
+    // If no summary, make recent pages full width
+    if (!hasSummary) {
+      document.getElementById('main-content').classList.add('no-summary');
     }
 
     const notes = await storage.getAllNotes();
@@ -317,15 +320,6 @@ async function init() {
 
   document.getElementById('open-tab').addEventListener('click', () => {
     chrome.tabs.create({ url: 'newtab.html' });
-  });
-
-  document.getElementById('new-page').addEventListener('click', async () => {
-    try {
-      await storage.createNote('Untitled');
-      chrome.tabs.create({ url: 'newtab.html' });
-    } catch (error) {
-      console.error('Failed to create note:', error);
-    }
   });
 }
 

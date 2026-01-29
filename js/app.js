@@ -53,7 +53,7 @@ class App {
       this.setupPageSelector(this.notes);
       this.setupSettings();
       this.setupSidebar();
-      this.setupAI();
+      await this.setupAI();
       this.setupWidthSelectorPill();
       this.setupTabs();
       this.setupEmptyState();
@@ -1575,7 +1575,7 @@ class App {
   /**
    * Setup AI chat sidebar functionality
    */
-  setupAI() {
+  async setupAI() {
     const aiSidebar = document.getElementById('ai-sidebar');
     const aiFloatingBtn = document.getElementById('ai-floating-btn');
     const aiCloseBtn = document.getElementById('ai-sidebar-close');
@@ -1591,11 +1591,13 @@ class App {
     
     if (!aiSidebar) return;
 
-    // Initialize chat history
-    this.aiChatHistory = [];
+    // Initialize chat state
     this.aiSidebarOpen = false;
-    this.aiSidebarWidth = 360;
+    this.aiSidebarWidth = await Storage.getSetting('aiSidebarWidth', 360);
     this.aiActiveTab = 'note';
+
+    // Load persisted chat history
+    await this.loadChatHistory();
 
     // Toggle AI sidebar from floating button
     aiFloatingBtn?.addEventListener('click', () => {
@@ -1826,11 +1828,78 @@ class App {
   }
 
   /**
+   * Load chat history from storage and restore UI
+   */
+  async loadChatHistory() {
+    // Load note chat history
+    this.aiChatHistory = await Storage.getSetting('aiChatHistory', []);
+    this.noteChatMessages = await Storage.getSetting('noteChatMessages', []);
+    
+    // Load global chat history
+    this.globalChatHistory = await Storage.getSetting('globalChatHistory', []);
+    this.globalChatMessages = await Storage.getSetting('globalChatMessages', []);
+    
+    // Restore note chat UI
+    if (this.noteChatMessages.length > 0) {
+      const messagesContainer = document.getElementById('ai-chat-messages');
+      const welcome = messagesContainer?.querySelector('.ai-chat-welcome');
+      const stickySuggestions = document.getElementById('ai-sticky-suggestions');
+      
+      if (welcome) {
+        welcome.style.display = 'none';
+      }
+      if (stickySuggestions) {
+        stickySuggestions.classList.remove('hidden');
+      }
+      
+      // Restore messages
+      this.noteChatMessages.forEach(msg => {
+        this.addChatMessage(msg.content, msg.type, false);
+      });
+    }
+    
+    // Restore global chat UI
+    if (this.globalChatMessages.length > 0) {
+      const messagesContainer = document.getElementById('global-chat-messages');
+      const welcome = messagesContainer?.querySelector('.global-chat-welcome');
+      
+      if (welcome) {
+        welcome.style.display = 'none';
+      }
+      
+      // Restore messages
+      this.globalChatMessages.forEach(msg => {
+        this.addGlobalChatMessage(msg.content, msg.type, msg.sourceNotes, false);
+      });
+    }
+  }
+
+  /**
+   * Save note chat history to storage
+   */
+  async saveNoteChatHistory() {
+    await Storage.setSetting('aiChatHistory', this.aiChatHistory);
+    await Storage.setSetting('noteChatMessages', this.noteChatMessages);
+  }
+
+  /**
+   * Save global chat history to storage
+   */
+  async saveGlobalChatHistory() {
+    await Storage.setSetting('globalChatHistory', this.globalChatHistory);
+    await Storage.setSetting('globalChatMessages', this.globalChatMessages);
+  }
+
+  /**
    * Clear the note chat history and UI
    */
-  clearNoteChat() {
+  async clearNoteChat() {
     // Clear chat history
     this.aiChatHistory = [];
+    this.noteChatMessages = [];
+    
+    // Save cleared state
+    await this.saveNoteChatHistory();
     
     // Clear messages from UI (keep welcome message)
     const messagesContainer = document.getElementById('ai-chat-messages');
@@ -1865,9 +1934,13 @@ class App {
   /**
    * Clear the global chat history and UI
    */
-  clearGlobalChat() {
+  async clearGlobalChat() {
     // Clear chat history
     this.globalChatHistory = [];
+    this.globalChatMessages = [];
+    
+    // Save cleared state
+    await this.saveGlobalChatHistory();
     
     // Clear messages from UI (keep welcome message)
     const messagesContainer = document.getElementById('global-chat-messages');
@@ -2116,8 +2189,7 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
     
     if (!chatInput) return;
 
-    // Initialize global chat state
-    this.globalChatHistory = [];
+    // Note: globalChatHistory and globalChatMessages are loaded in loadChatHistory()
 
     // Send message
     sendBtn?.addEventListener('click', () => {
@@ -2301,9 +2373,16 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
   /**
    * Add a message to the Global Chat UI
    */
-  addGlobalChatMessage(content, type, sourceNotes = null) {
+  addGlobalChatMessage(content, type, sourceNotes = null, persist = true) {
     const messagesContainer = document.getElementById('global-chat-messages');
     if (!messagesContainer) return;
+    
+    // Save to messages array for persistence
+    if (persist) {
+      if (!this.globalChatMessages) this.globalChatMessages = [];
+      this.globalChatMessages.push({ content, type, sourceNotes });
+      this.saveGlobalChatHistory();
+    }
     
     const messageEl = document.createElement('div');
     messageEl.className = `ai-chat-message ${type}`;
@@ -2395,9 +2474,16 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
   /**
    * Add a message to the chat UI
    */
-  addChatMessage(content, type) {
+  addChatMessage(content, type, persist = true) {
     const messagesContainer = document.getElementById('ai-chat-messages');
     if (!messagesContainer) return;
+    
+    // Save to messages array for persistence
+    if (persist) {
+      if (!this.noteChatMessages) this.noteChatMessages = [];
+      this.noteChatMessages.push({ content, type });
+      this.saveNoteChatHistory();
+    }
     
     const messageEl = document.createElement('div');
     messageEl.className = `ai-chat-message ${type}`;
