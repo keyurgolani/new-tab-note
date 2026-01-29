@@ -94,25 +94,33 @@ class LLMService {
       openai: [
         { id: 'gpt-4o', name: 'GPT-4o' },
         { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+        { id: 'o1', name: 'o1' },
+        { id: 'o1-mini', name: 'o1 Mini' },
+        { id: 'o1-preview', name: 'o1 Preview' },
         { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
         { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
       ],
       anthropic: [
         { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
         { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
         { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
         { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
       ],
       gemini: [
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
         { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
         { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
         { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
       ],
       openrouter: [
         { id: 'openai/gpt-4o', name: 'GPT-4o' },
+        { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
         { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-        { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5' },
-        { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' },
+        { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku' },
+        { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
+        { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' },
       ],
       ollama: [],
     };
@@ -153,60 +161,108 @@ class LLMService {
   }
 
   async fetchOpenAIModels(apiKey) {
-    const response = await fetch('https://api.openai.com/v1/models', {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    
-    if (!response.ok) throw new Error('Failed to fetch OpenAI models');
-    
-    const data = await response.json();
-    const chatModels = data.data
-      .filter(m => m.id.includes('gpt') && !m.id.includes('instruct'))
-      .sort((a, b) => b.created - a.created)
-      .slice(0, 10)
-      .map(m => ({ id: m.id, name: this.formatModelName(m.id) }));
-    
-    return chatModels.length > 0 ? chatModels : this.getFallbackModels('openai');
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch OpenAI models, using fallback list');
+        return this.getFallbackModels('openai');
+      }
+      
+      const data = await response.json();
+      const chatModels = (data.data || [])
+        .filter(m => m.id.startsWith('gpt') || m.id.startsWith('o1') || m.id.startsWith('o3'))
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map(m => ({ id: m.id, name: m.id }));
+      
+      return chatModels.length > 0 ? chatModels : this.getFallbackModels('openai');
+    } catch (error) {
+      console.warn('OpenAI models fetch error:', error);
+      return this.getFallbackModels('openai');
+    }
   }
 
   async fetchAnthropicModels(apiKey) {
-    // Anthropic doesn't have a public models endpoint, use fallback
-    return this.getFallbackModels('anthropic');
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch Anthropic models, using fallback list');
+        return this.getFallbackModels('anthropic');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || []).map(m => ({
+        id: m.id,
+        name: m.display_name || m.id,
+      }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('anthropic');
+    } catch (error) {
+      console.warn('Anthropic models fetch error:', error);
+      return this.getFallbackModels('anthropic');
+    }
   }
 
   async fetchGeminiModels(apiKey) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-    );
-    
-    if (!response.ok) throw new Error('Failed to fetch Gemini models');
-    
-    const data = await response.json();
-    const chatModels = data.models
-      .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-      .map(m => ({
-        id: m.name.replace('models/', ''),
-        name: m.displayName || this.formatModelName(m.name),
-      }));
-    
-    return chatModels.length > 0 ? chatModels : this.getFallbackModels('gemini');
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      );
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch Gemini models, using fallback');
+        return this.getFallbackModels('gemini');
+      }
+      
+      const data = await response.json();
+      const chatModels = (data.models || [])
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => ({
+          id: m.name.replace('models/', ''),
+          name: m.displayName || m.name.replace('models/', ''),
+        }))
+        // Sort to show newer models first (gemini-2.x before gemini-1.x)
+        .sort((a, b) => b.id.localeCompare(a.id));
+      
+      return chatModels.length > 0 ? chatModels : this.getFallbackModels('gemini');
+    } catch (error) {
+      console.warn('Gemini models fetch error:', error);
+      return this.getFallbackModels('gemini');
+    }
   }
 
   async fetchOpenRouterModels(apiKey) {
-    const response = await fetch('https://openrouter.ai/api/v1/models', {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    
-    if (!response.ok) throw new Error('Failed to fetch OpenRouter models');
-    
-    const data = await response.json();
-    const models = data.data
-      .filter(m => m.context_length > 0)
-      .sort((a, b) => (b.top_provider?.max_completion_tokens || 0) - (a.top_provider?.max_completion_tokens || 0))
-      .slice(0, 30)
-      .map(m => ({ id: m.id, name: m.name || m.id }));
-    
-    return models.length > 0 ? models : this.getFallbackModels('openrouter');
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch OpenRouter models');
+        return this.getFallbackModels('openrouter');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || [])
+        .slice(0, 100)
+        .map(m => ({ 
+          id: m.id, 
+          name: m.name || m.id 
+        }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('openrouter');
+    } catch (error) {
+      console.warn('OpenRouter models fetch error:', error);
+      return this.getFallbackModels('openrouter');
+    }
   }
 
   async fetchOllamaModels() {
@@ -251,7 +307,7 @@ class LLMService {
     const defaults = {
       openai: 'gpt-4o-mini',
       anthropic: 'claude-3-5-sonnet-20241022',
-      gemini: 'gemini-1.5-flash',
+      gemini: 'gemini-2.0-flash',
       openrouter: 'openai/gpt-4o-mini',
       ollama: 'llama3.2',
     };
@@ -292,6 +348,10 @@ class LLMService {
   async chat(messages) {
     if (!this.isConfigured()) {
       throw new Error('LLM not configured. Please set up API key in settings.');
+    }
+    
+    if (!this.model) {
+      throw new Error('No model selected. Please select a model in settings.');
     }
 
     switch (this.provider) {
@@ -584,16 +644,44 @@ Return JSON in this exact format:
     try {
       const response = await this.chat(messages);
       
-      // Parse JSON from response (handle potential markdown code blocks)
+      // Log raw response for debugging
+      console.log('LLM raw response for insights:', response);
+      
+      // Parse JSON from response (handle potential markdown code blocks and surrounding text)
       let jsonStr = response.trim();
-      if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      
+      // Try to extract JSON from markdown code blocks first
+      const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim();
+      } else {
+        // Try to find JSON object directly (starts with { and ends with })
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
       }
       
-      const insights = JSON.parse(jsonStr);
+      // Log extracted JSON string for debugging
+      console.log('Extracted JSON string:', jsonStr);
+      
+      let insights;
+      try {
+        insights = JSON.parse(jsonStr);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Failed to parse JSON string:', jsonStr);
+        return null;
+      }
+      
+      // Validate that we got an object
+      if (!insights || typeof insights !== 'object') {
+        console.error('Parsed insights is not an object:', insights);
+        return null;
+      }
       
       // Validate and sanitize the response
-      return {
+      const result = {
         todos: Array.isArray(insights.todos) ? insights.todos.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
         reminders: Array.isArray(insights.reminders) ? insights.reminders.slice(0, 5).map(s => String(s).substring(0, 100)) : [],
         deadlines: Array.isArray(insights.deadlines) ? insights.deadlines.slice(0, 5).map(d => ({
@@ -604,6 +692,21 @@ Return JSON in this exact format:
         tags: Array.isArray(insights.tags) ? insights.tags.slice(0, 5).map(t => String(t).toLowerCase().replace(/\s+/g, '-').substring(0, 30)) : [],
         extractedAt: Date.now()
       };
+      
+      // Check if we actually extracted anything meaningful
+      const hasContent = result.todos.length > 0 || 
+                        result.reminders.length > 0 || 
+                        result.deadlines.length > 0 || 
+                        result.highlights.length > 0 ||
+                        result.tags.length > 0;
+      
+      if (!hasContent) {
+        console.log('No meaningful insights extracted from response');
+        return null;
+      }
+      
+      console.log('Successfully extracted insights:', result);
+      return result;
     } catch (error) {
       console.error('Failed to extract insights:', error);
       return null;
