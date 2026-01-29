@@ -1673,6 +1673,12 @@ class App {
       this.updateSettingsUI();
     });
 
+    // Clear note chat button
+    const clearNoteBtn = document.getElementById('ai-chat-clear');
+    clearNoteBtn?.addEventListener('click', () => {
+      this.clearNoteChat();
+    });
+
     // Setup sidebar resize
     this.setupAISidebarResize();
 
@@ -1817,6 +1823,74 @@ class App {
     }
     
     this.aiSidebarOpen = false;
+  }
+
+  /**
+   * Clear the note chat history and UI
+   */
+  clearNoteChat() {
+    // Clear chat history
+    this.aiChatHistory = [];
+    
+    // Clear messages from UI (keep welcome message)
+    const messagesContainer = document.getElementById('ai-chat-messages');
+    if (messagesContainer) {
+      // Remove all messages except welcome
+      const messages = messagesContainer.querySelectorAll('.ai-chat-message');
+      messages.forEach(msg => msg.remove());
+      
+      // Show welcome message again
+      const welcome = messagesContainer.querySelector('.ai-chat-welcome');
+      if (welcome) {
+        welcome.style.display = '';
+      }
+    }
+    
+    // Hide sticky suggestions
+    const stickySuggestions = document.getElementById('ai-sticky-suggestions');
+    if (stickySuggestions) {
+      stickySuggestions.classList.add('hidden');
+    }
+    
+    // Clear and reset input
+    const input = document.getElementById('ai-chat-input');
+    if (input) {
+      input.value = '';
+      input.style.height = 'auto';
+    }
+    
+    Utils.showToast('Chat cleared', 'success');
+  }
+
+  /**
+   * Clear the global chat history and UI
+   */
+  clearGlobalChat() {
+    // Clear chat history
+    this.globalChatHistory = [];
+    
+    // Clear messages from UI (keep welcome message)
+    const messagesContainer = document.getElementById('global-chat-messages');
+    if (messagesContainer) {
+      // Remove all messages except welcome
+      const messages = messagesContainer.querySelectorAll('.ai-chat-message');
+      messages.forEach(msg => msg.remove());
+      
+      // Show welcome message again
+      const welcome = messagesContainer.querySelector('.global-chat-welcome');
+      if (welcome) {
+        welcome.style.display = '';
+      }
+    }
+    
+    // Clear and reset input
+    const input = document.getElementById('global-chat-input');
+    if (input) {
+      input.value = '';
+      input.style.height = 'auto';
+    }
+    
+    Utils.showToast('Chat cleared', 'success');
   }
 
   /**
@@ -2077,6 +2151,12 @@ Be concise but helpful. If the user asks to generate a title, respond with ONLY 
           }
         }
       });
+    });
+
+    // Clear global chat button
+    const clearGlobalBtn = document.getElementById('global-chat-clear');
+    clearGlobalBtn?.addEventListener('click', () => {
+      this.clearGlobalChat();
     });
   }
 

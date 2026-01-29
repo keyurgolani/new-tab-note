@@ -2664,6 +2664,28 @@ html, body {
   transform: none;
 }
 
+/* Clear Chat Button */
+.ai-chat-clear-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.ai-chat-clear-btn:hover {
+  background: var(--bg-hover);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
 /* AI Not Configured State */
 .ai-not-configured-sidebar {
   position: absolute;
