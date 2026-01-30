@@ -1,7 +1,7 @@
 /**
  * LLM Service for AI-powered features
- * Supports OpenAI, Anthropic, OpenRouter, Gemini, and Ollama providers
- * with dynamic model loading from APIs
+ * Supports OpenAI, Anthropic, OpenRouter, Gemini, xAI, Deepseek, Mistral, Groq,
+ * Qwen, GLM, Kimi, MiniMax, and Ollama providers with dynamic model loading from APIs
  */
 
 class LLMService {
@@ -114,6 +114,63 @@ class LLMService {
         { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
         { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
       ],
+      xai: [
+        { id: 'grok-3', name: 'Grok 3' },
+        { id: 'grok-3-fast', name: 'Grok 3 Fast' },
+        { id: 'grok-2', name: 'Grok 2' },
+        { id: 'grok-2-mini', name: 'Grok 2 Mini' },
+        { id: 'grok-beta', name: 'Grok Beta' },
+      ],
+      deepseek: [
+        { id: 'deepseek-chat', name: 'DeepSeek Chat (V3)' },
+        { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)' },
+      ],
+      mistral: [
+        { id: 'mistral-large-latest', name: 'Mistral Large' },
+        { id: 'mistral-medium-latest', name: 'Mistral Medium' },
+        { id: 'mistral-small-latest', name: 'Mistral Small' },
+        { id: 'codestral-latest', name: 'Codestral' },
+        { id: 'open-mixtral-8x22b', name: 'Mixtral 8x22B' },
+        { id: 'open-mixtral-8x7b', name: 'Mixtral 8x7B' },
+        { id: 'open-mistral-7b', name: 'Mistral 7B' },
+      ],
+      groq: [
+        { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
+        { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant' },
+        { id: 'llama3-70b-8192', name: 'Llama 3 70B' },
+        { id: 'llama3-8b-8192', name: 'Llama 3 8B' },
+        { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
+        { id: 'gemma2-9b-it', name: 'Gemma 2 9B' },
+      ],
+      qwen: [
+        { id: 'qwen-max', name: 'Qwen Max' },
+        { id: 'qwen-plus', name: 'Qwen Plus' },
+        { id: 'qwen-turbo', name: 'Qwen Turbo' },
+        { id: 'qwen-long', name: 'Qwen Long' },
+        { id: 'qwen2.5-72b-instruct', name: 'Qwen 2.5 72B' },
+        { id: 'qwen2.5-32b-instruct', name: 'Qwen 2.5 32B' },
+        { id: 'qwen2.5-14b-instruct', name: 'Qwen 2.5 14B' },
+        { id: 'qwen2.5-7b-instruct', name: 'Qwen 2.5 7B' },
+      ],
+      glm: [
+        { id: 'glm-4-plus', name: 'GLM-4 Plus' },
+        { id: 'glm-4-air', name: 'GLM-4 Air' },
+        { id: 'glm-4-airx', name: 'GLM-4 AirX' },
+        { id: 'glm-4-long', name: 'GLM-4 Long' },
+        { id: 'glm-4-flash', name: 'GLM-4 Flash' },
+        { id: 'glm-4', name: 'GLM-4' },
+      ],
+      kimi: [
+        { id: 'moonshot-v1-128k', name: 'Moonshot 128K' },
+        { id: 'moonshot-v1-32k', name: 'Moonshot 32K' },
+        { id: 'moonshot-v1-8k', name: 'Moonshot 8K' },
+      ],
+      minimax: [
+        { id: 'abab6.5s-chat', name: 'ABAB 6.5s Chat' },
+        { id: 'abab6.5-chat', name: 'ABAB 6.5 Chat' },
+        { id: 'abab5.5s-chat', name: 'ABAB 5.5s Chat' },
+        { id: 'abab5.5-chat', name: 'ABAB 5.5 Chat' },
+      ],
       openrouter: [
         { id: 'openai/gpt-4o', name: 'GPT-4o' },
         { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
@@ -151,6 +208,22 @@ class LLMService {
           return await this.fetchGeminiModels(apiKey);
         case 'openrouter':
           return await this.fetchOpenRouterModels(apiKey);
+        case 'xai':
+          return await this.fetchXAIModels(apiKey);
+        case 'deepseek':
+          return await this.fetchDeepseekModels(apiKey);
+        case 'mistral':
+          return await this.fetchMistralModels(apiKey);
+        case 'groq':
+          return await this.fetchGroqModels(apiKey);
+        case 'qwen':
+          return await this.fetchQwenModels(apiKey);
+        case 'glm':
+          return await this.fetchGLMModels(apiKey);
+        case 'kimi':
+          return await this.fetchKimiModels(apiKey);
+        case 'minimax':
+          return await this.fetchMiniMaxModels(apiKey);
         default:
           return this.getFallbackModels(provider);
       }
@@ -265,6 +338,121 @@ class LLMService {
     }
   }
 
+  async fetchXAIModels(apiKey) {
+    try {
+      const response = await fetch('https://api.x.ai/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch xAI models, using fallback');
+        return this.getFallbackModels('xai');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || [])
+        .filter(m => m.id.startsWith('grok'))
+        .map(m => ({ id: m.id, name: m.id }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('xai');
+    } catch (error) {
+      console.warn('xAI models fetch error:', error);
+      return this.getFallbackModels('xai');
+    }
+  }
+
+  async fetchDeepseekModels(apiKey) {
+    try {
+      const response = await fetch('https://api.deepseek.com/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch Deepseek models, using fallback');
+        return this.getFallbackModels('deepseek');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || []).map(m => ({
+        id: m.id,
+        name: m.id,
+      }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('deepseek');
+    } catch (error) {
+      console.warn('Deepseek models fetch error:', error);
+      return this.getFallbackModels('deepseek');
+    }
+  }
+
+  async fetchMistralModels(apiKey) {
+    try {
+      const response = await fetch('https://api.mistral.ai/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch Mistral models, using fallback');
+        return this.getFallbackModels('mistral');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || []).map(m => ({
+        id: m.id,
+        name: m.id,
+      }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('mistral');
+    } catch (error) {
+      console.warn('Mistral models fetch error:', error);
+      return this.getFallbackModels('mistral');
+    }
+  }
+
+  async fetchGroqModels(apiKey) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch Groq models, using fallback');
+        return this.getFallbackModels('groq');
+      }
+      
+      const data = await response.json();
+      const models = (data.data || []).map(m => ({
+        id: m.id,
+        name: m.id,
+      }));
+      
+      return models.length > 0 ? models : this.getFallbackModels('groq');
+    } catch (error) {
+      console.warn('Groq models fetch error:', error);
+      return this.getFallbackModels('groq');
+    }
+  }
+
+  async fetchQwenModels(apiKey) {
+    // Qwen (DashScope) doesn't have a public models list API, use fallback
+    return this.getFallbackModels('qwen');
+  }
+
+  async fetchGLMModels(apiKey) {
+    // GLM (Zhipu) doesn't have a public models list API, use fallback
+    return this.getFallbackModels('glm');
+  }
+
+  async fetchKimiModels(apiKey) {
+    // Kimi (Moonshot) doesn't have a public models list API, use fallback
+    return this.getFallbackModels('kimi');
+  }
+
+  async fetchMiniMaxModels(apiKey) {
+    // MiniMax doesn't have a public models list API, use fallback
+    return this.getFallbackModels('minimax');
+  }
+
   async fetchOllamaModels() {
     try {
       const response = await this.fetchViaBackground(`${this.ollamaUrl}/api/tags`, {
@@ -308,6 +496,14 @@ class LLMService {
       openai: 'gpt-4o-mini',
       anthropic: 'claude-3-5-sonnet-20241022',
       gemini: 'gemini-2.0-flash',
+      xai: 'grok-2',
+      deepseek: 'deepseek-chat',
+      mistral: 'mistral-small-latest',
+      groq: 'llama-3.3-70b-versatile',
+      qwen: 'qwen-turbo',
+      glm: 'glm-4-flash',
+      kimi: 'moonshot-v1-8k',
+      minimax: 'abab6.5s-chat',
       openrouter: 'openai/gpt-4o-mini',
       ollama: 'llama3.2',
     };
@@ -363,6 +559,22 @@ class LLMService {
         return this.chatGemini(messages);
       case 'openrouter':
         return this.chatOpenRouter(messages);
+      case 'xai':
+        return this.chatXAI(messages);
+      case 'deepseek':
+        return this.chatDeepseek(messages);
+      case 'mistral':
+        return this.chatMistral(messages);
+      case 'groq':
+        return this.chatGroq(messages);
+      case 'qwen':
+        return this.chatQwen(messages);
+      case 'glm':
+        return this.chatGLM(messages);
+      case 'kimi':
+        return this.chatKimi(messages);
+      case 'minimax':
+        return this.chatMiniMax(messages);
       case 'ollama':
         return this.chatOllama(messages);
       default:
@@ -477,6 +689,197 @@ class LLMService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error?.message || 'OpenRouter API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatXAI(messages) {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'grok-2',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'xAI API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatDeepseek(messages) {
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'deepseek-chat',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Deepseek API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatMistral(messages) {
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'mistral-small-latest',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Mistral API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatGroq(messages) {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'llama-3.3-70b-versatile',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Groq API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatQwen(messages) {
+    // Qwen uses DashScope API (Alibaba Cloud)
+    const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'qwen-turbo',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Qwen API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatGLM(messages) {
+    // GLM uses Zhipu AI API
+    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'glm-4-flash',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'GLM API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatKimi(messages) {
+    // Kimi uses Moonshot API
+    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'moonshot-v1-8k',
+        messages: messages,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Kimi API error');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  }
+
+  async chatMiniMax(messages) {
+    // MiniMax API
+    const response = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model || 'abab6.5s-chat',
+        messages: messages.map(m => ({
+          role: m.role === 'system' ? 'system' : (m.role === 'assistant' ? 'assistant' : 'user'),
+          content: m.content,
+        })),
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.base_resp?.status_msg || 'MiniMax API error');
     }
 
     const data = await response.json();
